@@ -299,27 +299,28 @@ sfhourly
 #df_hourly_visits.to_csv('hourly_visits_by_station_daily.csv')
 
 
-# In[15]:
+# In[43]:
 
 
 first_date = {}
 
 for idx, row in sfhourly.iterrows():
     
-    startdate = str(row['date'])
-    enddate = str(row['date'])
+    d = str(row['date'])    
+    date = [datetime.strptime(sd, '%Y-%m-%d')] 
     
-    key1 = str(row['station_name'])
-    key2 = str(row['station_name'])
+    key = str(row['station_name'])
     
-    if key1 not in first_date:
-        first_date[key1] = startdate
-    if key2 not in first_date:
-        first_date[key2] += enddate    
+    if key in first_date:
+        cdate = [datetime.strptime(first_date[key], '%Y-%m-%d')] 
+        if date < cdate:
+            first_date[key] = sd
+    else:
+        first_date[key] = sd
 first_date
 
 
-# In[17]:
+# In[44]:
 
 
 #import json
@@ -327,7 +328,7 @@ first_date
 #    json.dump(first_date, fp)
 
 
-# In[ ]:
+# In[18]:
 
 
 # Prediction is determining the potential density of bicycles at various intersections 
@@ -337,4 +338,54 @@ first_date
 # Understand new station location effect on traffic & collisions
 # Collect first date recorded for each station
 # Visualization for Bike Safety over time & collisions  
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[24]:
+
+
+sfhourly20171231 = sfhourly[sfhourly['date'] == '2017-12-31']
+sfhourly20171231_station = sfhourly20171231[sfhourly20171231['station_name'] == 'Powell St BART Station (Market St at 5th St)']
+sfhourly20171231_station
+
+
+# In[37]:
+
+
+from datetime import datetime
+
+d1 = sfhourly20171231_station.iloc[0]['date']
+d1 = [datetime.strptime(d1, '%Y-%m-%d')]
+d2 = sfhourly.iloc[1000]['date']
+d2 = [datetime.strptime(d2, '%Y-%m-%d')]
+
+if d1 < d2:
+    print("d1 is later")
+else:
+    print("d2 is later")
+
+#sftrips['start_weekday'] = [datetime.strptime(x,'%Y-%m-%d %H:%M:%S.%f').weekday() for x in sftrips['start_time']]
+
+
+# In[ ]:
+
+
+
 
