@@ -7,7 +7,7 @@
 get_ipython().system('pip install pandas')
 
 
-# In[3]:
+# In[1]:
 
 
 import csv
@@ -15,7 +15,7 @@ import pandas as pd
 from tensorflow import keras
 
 
-# In[4]:
+# In[2]:
 
 
 columns_of_interest = ['start_time', 'end_time']
@@ -65,14 +65,14 @@ allbikedata = pd.concat([allbikedata, bike201807, bike201808, bike201809, bike20
 allbikedata = pd.concat([allbikedata, bike201901, bike201902, bike201903])'''
 
 
-# In[8]:
+# In[3]:
 
 
 #allbikedata.to_csv('allbikedata.csv')
 allbikedata = pd.DataFrame(pd.read_csv('allbikedata.csv'), columns=columns_of_interest)
 
 
-# In[174]:
+# In[4]:
 
 
 startstations = allbikedata["start_station_name"].tolist()
@@ -82,7 +82,7 @@ allstations = set(startstations + endstations)
 allstations
 
 
-# In[10]:
+# In[5]:
 
 
 # Label Station locations by city
@@ -107,24 +107,24 @@ alllon = set(startlon + endlon)
 # In[11]:
 
 
-# About 5 hours to preprocess data (and remove non-SF station information) and construct the basic model pipeline
+# About 5 hours to preprocess data (and remove non-SF station information)
 
 
-# In[12]:
+# In[6]:
 
 
 allbikedata['start_city'] = ['San Francisco' if -1*int(100*x) >= 12235 else 'Other' for x in allbikedata['start_station_longitude']]
 allbikedata['end_city'] = ['San Francisco' if -1*int(100*x) >= 12235 else 'Other' for x in allbikedata['end_station_longitude']]
 
 
-# In[13]:
+# In[7]:
 
 
 intercity = allbikedata[allbikedata['start_city'] != allbikedata['end_city']]
 #intercity
 
 
-# In[14]:
+# In[8]:
 
 
 # Collect list of all SF Stations
@@ -137,7 +137,7 @@ sfstations = set(sfstarts["start_station_name"].tolist() + sfends["end_station_n
 sfstations
 
 
-# In[15]:
+# In[9]:
 
 
 # List of all SF trips (nonintercity)
@@ -154,39 +154,39 @@ sftrips
 # Also add intercity stats
 # TAKES > 5 minutes
 
-totalvisits = {}
+'''totalvisits = {}
 for idx, row in sftrips.iterrows():
     currentstart = row['start_station_name']
     currentend = row['end_station_name']
-
+    
     if currentstart in sfstations:
         if currentstart in totalvisits:
             totalvisits[currentstart] += 1
         else:
             totalvisits[currentstart] = 1
-
+    
     if currentend in sfstations:
         if currentend in totalvisits:
             totalvisits[currentend] += 1
         else:
             totalvisits[currentend] = 1
-
+            
 for idx, row in intercity.iterrows():
     currentstart = row['start_station_name']
     currentend = row['end_station_name']
-
+    
     if currentstart in sfstations:
         if currentstart in totalvisits:
             totalvisits[currentstart] += 1
         else:
             totalvisits[currentstart] = 1
-
+    
     if currentend in sfstations:
         if currentend in totalvisits:
             totalvisits[currentend] += 1
         else:
             totalvisits[currentend] = 1
-totalvisits
+totalvisits '''
 
 
 # In[17]:
@@ -197,7 +197,7 @@ totalvisits
 #    json.dump(totalvisits, fp)
 
 
-# In[18]:
+# In[12]:
 
 
 ### BASE DATASET FOR DAILY PREDICTION DATA
@@ -232,13 +232,13 @@ sftrips
 hourly_station_usage = {}
 
 for idx, row in sftrips.iterrows():
-
+    
     startdate = str(row['start_year']) + '-' + str(row['start_month']) + '-' + str(row['start_day'])
     enddate = str(row['end_year']) + '-' + str(row['end_month']) + '-' + str(row['end_day'])
-
+    
     key1 = str(startdate)+','+str(row['start_hour'])+','+str(row['start_weekday'])+','+str(row['start_station_name'])
     key2 = str(enddate)+','+str(row['end_hour'])+','+str(row['end_weekday'])+','+str(row['end_station_name'])
-
+    
     if key1 in hourly_station_usage:
         hourly_station_usage[key1] += 1
     else:
@@ -247,7 +247,7 @@ for idx, row in sftrips.iterrows():
         hourly_station_usage[key2] += 1
     else:
         hourly_station_usage[key2] = 1
-
+        
 hourly_station_usage
 
 
@@ -279,17 +279,18 @@ columns = ['date', 'hour', 'weekday', 'station_name', 'num_visits']
 for key in hourlyvisits:
     [date, hr, wd, sn] = key.split(',')
     nv = hourlyvisits[key]
-
+    
     hourly_reshaped.append([date, int(hr), int(wd), sn, nv])
-
+    
 df_hourly_visits = pd.DataFrame(hourly_reshaped, columns=columns)
 df_hourly_visits
 
 
-# In[ ]:
+# In[10]:
 
 
-
+sfhourly = pd.DataFrame(pd.read_csv('hourly_visits_by_station_daily_sf.csv'))
+sfhourly
 
 
 # In[44]:
@@ -298,4 +299,42 @@ df_hourly_visits
 #df_hourly_visits.to_csv('hourly_visits_by_station_daily.csv')
 
 
+# In[15]:
+
+
+first_date = {}
+
+for idx, row in sfhourly.iterrows():
+    
+    startdate = str(row['date'])
+    enddate = str(row['date'])
+    
+    key1 = str(row['station_name'])
+    key2 = str(row['station_name'])
+    
+    if key1 not in first_date:
+        first_date[key1] = startdate
+    if key2 not in first_date:
+        first_date[key2] += enddate    
+first_date
+
+
+# In[17]:
+
+
+#import json
+#with open('station_first_dates.json', 'w') as fp:
+#    json.dump(first_date, fp)
+
+
 # In[ ]:
+
+
+# Prediction is determining the potential density of bicycles at various intersections 
+
+# Compare against average or median
+# Predicting based on time sequence
+# Understand new station location effect on traffic & collisions
+# Collect first date recorded for each station
+# Visualization for Bike Safety over time & collisions  
+

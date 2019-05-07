@@ -13,3 +13,4 @@ The anticipated usage is to check the predicted general number of people who are
 * bikesafety-data-wrangling.ipynb - Notebook used to brainstorm model structure and create associated data files  
 * bikesafety-data-wrangling.py - Notebook (identical to data wrangling notebook) saved as python file  
 * hourly_visits_by_station_daily_sf.csv - Unzip the compressed file to get a CSV file with number of visits recorded for every SF station, at hourly points every day. This CSV can be directly loaded into a pandas dataframe. This was the main output of the python data wrangling notebook.  
+* station_first_dates.json - Keys are station names and values are the first date on which there was recorded activity at that station. We can use this value as an indication of new stations being opened over time.  
