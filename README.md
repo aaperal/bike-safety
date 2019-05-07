@@ -12,4 +12,4 @@ The anticipated usage is to check the predicted general number of people who are
 ## Directories and Files  
 * bikesafety-data-wrangling.ipynb - Notebook used to brainstorm model structure and create associated data files  
 * bikesafety-data-wrangling.py - Notebook (identical to data wrangling notebook) saved as python file  
-* hourly_visits_by_station_daily_sf.csv - CSV file with number of visits recorded for every SF station, at hourly points every day. This CSV can be directly loaded into a pandas dataframe. This was the main output of the python data wrangling notebook.  
+* hourly_visits_by_station_daily_sf.csv - Unzip the compressed file to get a CSV file with number of visits recorded for every SF station, at hourly points every day. This CSV can be directly loaded into a pandas dataframe. This was the main output of the python data wrangling notebook.  
