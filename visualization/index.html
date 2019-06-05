@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Leaflet Map with Heatmap </title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+   crossorigin=""/>
+    <style>
+    	html {
+    		height: 93%;
+    		overflow: hidden;
+    	}
+
+    	body {
+    		min-height: 100%;
+    		position: relative;
+    		padding-bottom: 10px;
+    	}
+
+    	#data-selection {
+    		margin: 5px;
+    		position: relative;
+    		display: table-cell;
+    	}
+
+    	.footer {
+    		position: absolute;
+    		height: 10px;
+    		left: 0 ; right: 0; bottom: 0; 
+    		font-size: xx-small;
+    	}
+
+    </style>
+</head>
+<body>
+	<h1>Bicycle Usage and Accident Data Visualization, San Francisco</h1>
+   
+	<div>
+    <div id="map" style="width: 69%; height: 350px; float:left;"></div>
+
+     
+  	<div id="data-selection" style="width:30%; float:right; margin-top:-20px;">
+        <p>This visualization shows our predictions for bike usage data in 2019 from January to March. We also show real usage data for the period of June 2017 - March 2019. We have also superimposed real accident data over the map. Hover over the cyclists for more information about the accident. <br>
+        Choose which data to display below. Note that our prediction data only shows predictions for the top 25 most frequented stations in SF, so the frequency of usage will naturally be lower than with the real data.</p>
+
+        <form name="visData">
+            <input type="radio" id="prediction" onchange="switchData(value)" name="dataSelect" value="bike_predictions.json"
+         checked>
+            <label for="prediction">Prediction data</label>
+            <input type="radio" id="usage" onchange="switchData(value)" name="dataSelect" value="bike_data_for_map.json">
+            <label for="usage">Real Usage Data</label>
+        </form>
+  		<p>Date Selection allows you to see the bike usage data on any given day for a particular hour. Bike collision data is aggregated by month.</p>
+  		<label for="bike-dates">Date:</label>
+  		<input type="date" id="dates" name="bike-dates"
+       	value="2019-03-30"
+       	min="2017-06-28" max="2019-03-31">
+
+    	<input type="time" id="hour" name="hour"
+       	min="00:00" max="23:00" value="19:00" step="3600" required>
+    </div>
+    </div>
+
+    <p id="accidentCount" style="float:left; width:100%;">Accident count for the month: </p>
+
+
+
+     <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+   integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+   crossorigin=""></script>
+    
+    <script
+       src="http://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js">
+    </script>
+
+    <!--<script src="https://d3js.org/d3.v4.min.js"></script>-->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="map_data.js"></script> 
+    <script>
+
+        var coordinates;
+        var pred_data;
+        var usage_data;
+        var heat;
+
+    	// loads bike and station json data
+    	// use bike_predictions.json for the predictions data
+    	// otherwise use bike_data_for_map.json for actual usage data
+		d3.json("/data-preprocess/bike_predictions.json") 
+			.then(function(stations){
+				d3.json("/data-preprocess/station_latlons.json")
+				.then(function(coords){
+					coordinates = coords;
+                    pred_data = stations;
+					// generates map from usage/location data
+					var circles = getData(stations, coords, "");
+					heat = generateMap(circles);
+
+					// need to nest this because map must load first
+					// generates accident data
+					d3.json("/data-preprocess/collision_data.json")
+						.then(function(collisions){
+							//console.log("pre");
+							addAccidents(collisions, 3, 2019);
+							//h
+							//console.log("post");
+						});
+				});
+			});
+
+
+
+        // Adds the event listeners for the date and time inputs
+    	var dates = document.getElementById("dates");
+    	var hour = document.getElementById("hour");
+    	var accident = document.getElementById("accident-dates");
+    	
+    	dates.addEventListener("input", function(evt){
+    		if (this.checkValidity()) {
+    			// updates usage data when date is changed 
+    			updateData(this.value + " " + hour.value + ":00");
+    			var split = this.value.split("-");
+    			// will update tool tip accident information when date is changed
+    			// want to pass in (month, year) which correspond to index 1,0
+    			updateToolTip(parseInt(split[1]), parseInt(split[0]));
+    		}
+    	});
+
+    	hour.addEventListener("input", function(evt){
+    		if (this.checkValidity()) {
+    			// updates bike usage data when hour is changed
+    			updateData(dates.value + " " + this.value + ":00");
+    		}
+    	});
+
+        // this function switches the data source from which to make the heat maps
+        function switchData(dataName) {
+
+            switch(dataName) {
+                case "bike_predictions.json":
+                    if (pred_data != null) {
+                        var date = dates.value + " " + hour.value + ":00";
+                        heat.setLatLngs(getData(pred_data, coordinates, date));
+                        heat.redraw();
+                    }
+                    break;
+                case "bike_data_for_map.json":
+                    if (usage_data != null) {
+                        var date = dates.value + " " + hour.value + ":00";
+                        heat.setLatLngs(getData(usage_data, coordinates, date));
+                        heat.redraw();
+                    } else {
+                        d3.json("/data-preprocess/" + dataName)
+                            .then(function(stations){
+                                var date = dates.value + " " + hour.value + ":00";
+                                usage_data = stations;
+                                heat.setLatLngs(getData(stations, coordinates, date));
+                                heat.redraw();
+                        });
+                    }
+                    break;
+                default:
+                    console.log("Error, wrong data source selected.");
+            }
+            // gets updated data with new date
+            var circles = getData(stations, coordinates, date);
+
+            // update and redraw heat layer
+            heat.setLatLngs(circles);
+            heat.redraw();
+
+        }
+
+
+    </script>
+
+
+<footer class="footer">Icons made by <a href="https://www.freepik.com/?__hstc=57440181.ce5e07bb4c33ee72f749f4fa26658ec9.1557731492667.1557731492667.1557731492667.1&__hssc=57440181.7.1557731492669&__hsfp=1075157206" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></footer>
+</body>
+</html>
